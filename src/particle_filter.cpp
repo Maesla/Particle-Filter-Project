@@ -28,9 +28,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   int M = 100;
   this->num_particles = M;
 
-  normal_distribution<double> dist_x(x, std[0]);
-
   // TODO: Create normal distributions for y and psi
+  normal_distribution<double> dist_x(x, std[0]);
   normal_distribution<double> dist_y(y, std[1]);
   normal_distribution<double> dist_psi(theta, std[2]);
   default_random_engine gen;
@@ -45,15 +44,16 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     particles.push_back(p);
   }
 
-  /*
-  for(int i = 0; i < M; i++)
+  is_initialized = true;
+
+}
+
+void ParticleFilter::printParticles()
+{
+  for(int i = 0; i < num_particles; i++)
   {
     cout << particles[i].id << ": " << particles[i].x << endl;
   }
-  */
-
-  is_initialized = true;
-
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -62,6 +62,46 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
+  default_random_engine gen;
+  normal_distribution<double> dist_x(0, std_pos[0]);
+  normal_distribution<double> dist_y(0, std_pos[1]);
+  normal_distribution<double> dist_psi(0, std_pos[2]);
+
+  int M = num_particles;
+  for(int i = 0; i < M; i++)
+  {
+    updateMotionModel(particles[i], delta_t, velocity, yaw_rate);
+    particles[i].x += dist_x(gen);
+    particles[i].y += dist_y(gen);
+    particles[i].theta += dist_psi(gen);
+
+  }
+
+  printParticles();
+
+}
+
+void ParticleFilter::updateMotionModel(Particle &p, double delta_t,double velocity, double yaw_rate)
+{
+  bool isYawRateZero = fabs(yaw_rate) < 0.01;
+  double delta_x;
+  double delta_y;
+
+  double theta = p.theta;
+  if (isYawRateZero)
+  {
+    delta_x = velocity*delta_t*cos(theta);
+    delta_y = velocity*delta_t*sin(theta);
+  }
+  else
+  {
+    delta_x = (velocity/yaw_rate)*(sin(theta + yaw_rate*delta_t)-sin(theta));
+    delta_y = (velocity/yaw_rate)*(cos(theta)-cos(theta+yaw_rate*delta_t));
+  }
+
+  p.x += delta_x;
+  p.y += delta_y;
+  p.theta += yaw_rate*delta_t;
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {

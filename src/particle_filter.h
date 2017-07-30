@@ -114,8 +114,11 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
-};
 
+	void printParticles();
+	void updateMotionModel(Particle &p, double delta_t,double velocity, double yaw_rate);
+
+};
 
 
 #endif /* PARTICLE_FILTER_H_ */

@@ -25,7 +25,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-  int M = 100;
+  int M = 10;
   this->num_particles = M;
 
   // TODO: Create normal distributions for y and psi
@@ -42,6 +42,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.theta = dist_psi(gen);
     p.weight = 1.0;
     particles.push_back(p);
+    weights.push_back(p.weight);
   }
 
   is_initialized = true;
@@ -52,7 +53,8 @@ void ParticleFilter::printParticles()
 {
   for(int i = 0; i < num_particles; i++)
   {
-    cout << particles[i].id << ": " << particles[i].x << endl;
+    Particle p = particles[i];
+    cout << particles[i].id << ": X: " << p.x << " Weight: " << p.weight << endl;
   }
 }
 
@@ -112,7 +114,33 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
 
+  for(int i = 0; i < observations.size(); i++)
+  {
+    double xObs = observations[i].x;
+    double yObs = observations[i].y;
+
+    double min_distance = std::numeric_limits<double>::infinity();
+    int indexOfPredictedObservationWithMinDistance = 0;
+    for(int j = 0; j < predicted.size(); j++)
+    {
+      double xPredicted = predicted[j].x;
+      double yPredicted = predicted[j].y;
+      double distance = dist(xObs, yObs, xPredicted, yPredicted);
+
+      if (distance < min_distance)
+      {
+        min_distance = distance;
+        //indexOfPredictedObservationWithMinDistance = predicted[j].id;
+        indexOfPredictedObservationWithMinDistance = j;
+
+      }
+    }
+
+    cout <<"Observation: " << i <<" Index: " << indexOfPredictedObservationWithMinDistance << " Distance: " << min_distance << endl;
+    observations[i].id = indexOfPredictedObservationWithMinDistance;
+  }
 }
+
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
 		std::vector<LandmarkObs> observations, Map map_landmarks) {
@@ -127,18 +155,20 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
   int M = num_particles;
+  double totalWeight = 0.0;
   for(int i = 0; i < M; i++)
   {
+
+    Particle p = particles[i];
     std::vector<LandmarkObs> predictedObservations;
     for(int j = 0; j < map_landmarks.landmark_list.size(); j++)
     {
-      Particle p = particles[i];
       Map::single_landmark_s landmark = map_landmarks.landmark_list[j];
 
       float theta = p.theta;
       float localx = landmark.x_f - p.x;
       float localy = landmark.y_f - p.y;
-      float dist = sqrt(localx + localy);
+      float dist = sqrt(localx*localx + localy*localy);
 
       if (dist < sensor_range)
       {
@@ -151,10 +181,52 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         predictedObservations.push_back(predictedObservation);
 
       }
-
     }
+
+    dataAssociation(predictedObservations, observations);
+
+    double weight = 1.0f;
+
+    for(int i = 0; i < observations.size(); i++)
+    {
+      double x = observations[i].x;
+      double y = observations[i].y;
+      int indexInPredictedArray = observations[i].id;
+      double mean_x = predictedObservations[indexInPredictedArray].x;
+      double mean_y = predictedObservations[indexInPredictedArray].y;
+
+      double partialWeight = bivariateNormalDistribution(x, y, mean_x, mean_y, std_landmark[0], std_landmark[1]);
+      weight *= partialWeight;
+    }
+
+    particles[i].weight = weight;
+    totalWeight += weight;
   }
+
+  cout << "Total Weight: " << totalWeight << endl;
+  for(int i = 0; i < M; i++)
+  {
+    particles[i].weight /= totalWeight;
+  }
+
+  printParticles();
 }
+
+double ParticleFilter::bivariateNormalDistribution(double x, double y, double mean_x, double mean_y, double sigma_x, double sigma_y)
+{
+  double deltax = x - mean_x;
+  double deltay = y - mean_y;
+  double deltax_squared = deltax*deltax;
+  double deltay_squared = deltay*deltay;
+  double sigma_x_squared = sigma_x*sigma_x;
+  double sigma_y_squared = sigma_y*sigma_y;
+
+  double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared) - (2.0*(deltax*deltay)/(sigma_x*sigma_y))));
+  double denominator = 2.0*M_PI*sigma_x*sigma_y;
+
+  return numerator/denominator;
+}
+
 
 
 void ParticleFilter::resample() {

@@ -71,13 +71,15 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   for(int i = 0; i < M; i++)
   {
     updateMotionModel(particles[i], delta_t, velocity, yaw_rate);
+
+    //Adding Gaussian noise
     particles[i].x += dist_x(gen);
     particles[i].y += dist_y(gen);
     particles[i].theta += dist_psi(gen);
 
   }
 
-  printParticles();
+  //printParticles();
 
 }
 
@@ -124,7 +126,36 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+  int M = num_particles;
+  for(int i = 0; i < M; i++)
+  {
+    std::vector<LandmarkObs> predictedObservations;
+    for(int j = 0; j < map_landmarks.landmark_list.size(); j++)
+    {
+      Particle p = particles[i];
+      Map::single_landmark_s landmark = map_landmarks.landmark_list[j];
+
+      float theta = p.theta;
+      float localx = landmark.x_f - p.x;
+      float localy = landmark.y_f - p.y;
+      float dist = sqrt(localx + localy);
+
+      if (dist < sensor_range)
+      {
+        float rotatedLocalx = localx*cos(theta) - localy*sin(theta);
+        float rotatedLocaly = localx*sin(theta) + localy*cos(theta);
+        LandmarkObs predictedObservation;
+        predictedObservation.id = landmark.id_i;
+        predictedObservation.x = rotatedLocalx;
+        predictedObservation.y = rotatedLocaly;
+        predictedObservations.push_back(predictedObservation);
+
+      }
+
+    }
+  }
 }
+
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 

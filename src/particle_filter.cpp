@@ -81,13 +81,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
   }
 
-  //printParticles();
+  printParticles();
 
 }
 
 void ParticleFilter::updateMotionModel(Particle &p, double delta_t,double velocity, double yaw_rate)
 {
-  bool isYawRateZero = fabs(yaw_rate) < 0.01;
+  bool isYawRateZero = fabs(yaw_rate) < 0.0001;
   double delta_x;
   double delta_y;
 
@@ -120,6 +120,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
     double yObs = observations[i].y;
 
     double min_distance = std::numeric_limits<double>::infinity();
+
     int indexOfPredictedObservationWithMinDistance = 0;
     for(int j = 0; j < predicted.size(); j++)
     {
@@ -130,13 +131,12 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
       if (distance < min_distance)
       {
         min_distance = distance;
-        //indexOfPredictedObservationWithMinDistance = predicted[j].id;
         indexOfPredictedObservationWithMinDistance = j;
 
       }
     }
 
-    cout <<"Observation: " << i <<" Index: " << indexOfPredictedObservationWithMinDistance << " Distance: " << min_distance << endl;
+    //cout <<"Observation: " << i <<" Index: " << indexOfPredictedObservationWithMinDistance << " Distance: " << min_distance << endl;
     observations[i].id = indexOfPredictedObservationWithMinDistance;
   }
 }
@@ -155,7 +155,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
   int M = num_particles;
-  double totalWeight = 0.0;
   for(int i = 0; i < M; i++)
   {
 
@@ -187,11 +186,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     double weight = 1.0f;
 
-    for(int i = 0; i < observations.size(); i++)
+    for(int k = 0; k < observations.size(); k++)
     {
-      double x = observations[i].x;
-      double y = observations[i].y;
-      int indexInPredictedArray = observations[i].id;
+      double x = observations[k].x;
+      double y = observations[k].y;
+      int indexInPredictedArray = observations[k].id;
       double mean_x = predictedObservations[indexInPredictedArray].x;
       double mean_y = predictedObservations[indexInPredictedArray].y;
 
@@ -200,16 +199,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     }
 
     particles[i].weight = weight;
-    totalWeight += weight;
+    weights[i] = weight;
   }
 
-  cout << "Total Weight: " << totalWeight << endl;
-  /*for(int i = 0; i < M; i++)
-  {
-    particles[i].weight /= totalWeight;
-  }*/
-
-  printParticles();
+  //printParticles();
 }
 
 double ParticleFilter::bivariateNormalDistribution(double x, double y, double mean_x, double mean_y, double sigma_x, double sigma_y)
@@ -221,12 +214,8 @@ double ParticleFilter::bivariateNormalDistribution(double x, double y, double me
   double sigma_x_squared = sigma_x*sigma_x;
   double sigma_y_squared = sigma_y*sigma_y;
 
-  //double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared) - (2.0*(deltax*deltay)/(sigma_x*sigma_y))));
   double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared)));
   double denominator = 2.0*M_PI*sigma_x*sigma_y;
-
-  //double numerator = exp(- 0.5 * (deltax_squared*sigma_x + deltay_squared*sigma_y));
-  //double denominator = sqrt(2.0 * M_PI * sigma_x * sigma_y);
 
   return numerator/denominator;
 }

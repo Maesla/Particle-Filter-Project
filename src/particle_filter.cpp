@@ -25,7 +25,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-  int M = 10;
+  int M = 200;
   this->num_particles = M;
 
   // TODO: Create normal distributions for y and psi
@@ -54,7 +54,7 @@ void ParticleFilter::printParticles()
   for(int i = 0; i < num_particles; i++)
   {
     Particle p = particles[i];
-    cout << particles[i].id << ": X: " << p.x << " Weight: " << p.weight << endl;
+    cout << p.id << ": X: " << p.x << " Weight: " << p.weight << endl;
   }
 }
 
@@ -172,8 +172,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
       if (dist < sensor_range)
       {
-        float rotatedLocalx = localx*cos(theta) - localy*sin(theta);
-        float rotatedLocaly = localx*sin(theta) + localy*cos(theta);
+        float rotatedLocalx = localx*cos(theta) + localy*sin(theta);
+        float rotatedLocaly = localx*sin(theta) - localy*cos(theta);
         LandmarkObs predictedObservation;
         predictedObservation.id = landmark.id_i;
         predictedObservation.x = rotatedLocalx;
@@ -204,10 +204,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   }
 
   cout << "Total Weight: " << totalWeight << endl;
-  for(int i = 0; i < M; i++)
+  /*for(int i = 0; i < M; i++)
   {
     particles[i].weight /= totalWeight;
-  }
+  }*/
 
   printParticles();
 }
@@ -221,8 +221,12 @@ double ParticleFilter::bivariateNormalDistribution(double x, double y, double me
   double sigma_x_squared = sigma_x*sigma_x;
   double sigma_y_squared = sigma_y*sigma_y;
 
-  double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared) - (2.0*(deltax*deltay)/(sigma_x*sigma_y))));
+  //double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared) - (2.0*(deltax*deltay)/(sigma_x*sigma_y))));
+  double numerator = exp(-0.5*((deltax_squared/sigma_x_squared) + (deltay_squared/sigma_y_squared)));
   double denominator = 2.0*M_PI*sigma_x*sigma_y;
+
+  //double numerator = exp(- 0.5 * (deltax_squared*sigma_x + deltay_squared*sigma_y));
+  //double denominator = sqrt(2.0 * M_PI * sigma_x * sigma_y);
 
   return numerator/denominator;
 }
@@ -234,6 +238,17 @@ void ParticleFilter::resample() {
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
+
+  std::vector<Particle> resampled_particles;
+  default_random_engine generator;
+  discrete_distribution<int> weightResamplingIndex(weights.begin(), weights.end());
+  for(int i = 0; i < particles.size(); i++)
+  {
+    int selectedIndex = weightResamplingIndex(generator);
+    resampled_particles.push_back(particles[selectedIndex]);
+  }
+
+  particles = resampled_particles;
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)

@@ -184,25 +184,32 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     dataAssociation(predictedObservations, observations);
 
-    double weight = 1.0f;
+    double particleWeight = calculateParticleWeight(particles[i], predictedObservations, observations, std_landmark);
 
-    for(int k = 0; k < observations.size(); k++)
-    {
-      double x = observations[k].x;
-      double y = observations[k].y;
-      int indexInPredictedArray = observations[k].id;
-      double mean_x = predictedObservations[indexInPredictedArray].x;
-      double mean_y = predictedObservations[indexInPredictedArray].y;
-
-      double partialWeight = bivariateNormalDistribution(x, y, mean_x, mean_y, std_landmark[0], std_landmark[1]);
-      weight *= partialWeight;
-    }
-
-    particles[i].weight = weight;
-    weights[i] = weight;
+    particles[i].weight = particleWeight;
+    weights[i] = particleWeight;
   }
 
   //printParticles();
+}
+
+double ParticleFilter::calculateParticleWeight(Particle p, std::vector<LandmarkObs> predictedObservations, std::vector<LandmarkObs> observations, double std_landmark[])
+{
+  double weight = 1.0f;
+
+  for(int k = 0; k < observations.size(); k++)
+  {
+    double x = observations[k].x;
+    double y = observations[k].y;
+    int indexInPredictedArray = observations[k].id;
+    double mean_x = predictedObservations[indexInPredictedArray].x;
+    double mean_y = predictedObservations[indexInPredictedArray].y;
+
+    double partialWeight = bivariateNormalDistribution(x, y, mean_x, mean_y, std_landmark[0], std_landmark[1]);
+    weight *= partialWeight;
+
+    return weight;
+  }
 }
 
 double ParticleFilter::bivariateNormalDistribution(double x, double y, double mean_x, double mean_y, double sigma_x, double sigma_y)

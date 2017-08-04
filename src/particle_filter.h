@@ -117,6 +117,7 @@ public:
 
 	void printParticles();
 	void updateMotionModel(Particle &p, double delta_t,double velocity, double yaw_rate);
+	std::vector<LandmarkObs> calculatePredictedObservations(Particle p, double sensor_range, Map map_landmarks);
 	double calculateParticleWeight(Particle p, std::vector<LandmarkObs> predictedObservations, std::vector<LandmarkObs> observations, double std_landmark[]);
 	double bivariateNormalDistribution(double x, double y, double mean_x, double mean_y, double sigma_x, double sigma_y);
 

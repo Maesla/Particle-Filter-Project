@@ -157,30 +157,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   int M = num_particles;
   for(int i = 0; i < M; i++)
   {
-
-    Particle p = particles[i];
-    std::vector<LandmarkObs> predictedObservations;
-    for(int j = 0; j < map_landmarks.landmark_list.size(); j++)
-    {
-      Map::single_landmark_s landmark = map_landmarks.landmark_list[j];
-
-      float theta = p.theta;
-      float localx = landmark.x_f - p.x;
-      float localy = landmark.y_f - p.y;
-      float dist = sqrt(localx*localx + localy*localy);
-
-      if (dist < sensor_range)
-      {
-        float rotatedLocalx = localx*cos(theta) + localy*sin(theta);
-        float rotatedLocaly = -localx*sin(theta) + localy*cos(theta);
-        LandmarkObs predictedObservation;
-        predictedObservation.id = landmark.id_i;
-        predictedObservation.x = rotatedLocalx;
-        predictedObservation.y = rotatedLocaly;
-        predictedObservations.push_back(predictedObservation);
-
-      }
-    }
+    std::vector<LandmarkObs> predictedObservations = calculatePredictedObservations(particles[i], sensor_range, map_landmarks);
 
     dataAssociation(predictedObservations, observations);
 
@@ -191,6 +168,34 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   }
 
   //printParticles();
+}
+
+std::vector<LandmarkObs> ParticleFilter::calculatePredictedObservations(Particle p, double sensor_range, Map map_landmarks)
+{
+  std::vector<LandmarkObs> predictedObservations;
+  for(int j = 0; j < map_landmarks.landmark_list.size(); j++)
+  {
+    Map::single_landmark_s landmark = map_landmarks.landmark_list[j];
+
+    float theta = p.theta;
+    float localx = landmark.x_f - p.x;
+    float localy = landmark.y_f - p.y;
+    float dist = sqrt(localx*localx + localy*localy);
+
+    if (dist < sensor_range)
+    {
+      float rotatedLocalx = localx*cos(theta) + localy*sin(theta);
+      float rotatedLocaly = -localx*sin(theta) + localy*cos(theta);
+      LandmarkObs predictedObservation;
+      predictedObservation.id = landmark.id_i;
+      predictedObservation.x = rotatedLocalx;
+      predictedObservation.y = rotatedLocaly;
+      predictedObservations.push_back(predictedObservation);
+
+    }
+  }
+
+  return predictedObservations;
 }
 
 double ParticleFilter::calculateParticleWeight(Particle p, std::vector<LandmarkObs> predictedObservations, std::vector<LandmarkObs> observations, double std_landmark[])

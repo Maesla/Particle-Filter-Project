@@ -25,7 +25,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-  int M = 200;
+  int M = 100;
   this->num_particles = M;
 
   // TODO: Create normal distributions for y and psi
@@ -81,7 +81,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
   }
 
-  printParticles();
+  //printParticles();
 
 }
 
